@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>თევზაობის პროგნოზი საქართველოში</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Leaflet Search Plugin CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">🎣 თევზაობის პროგნოზი</h1>
+            <nav class="nav">
+                <a href="#today" class="nav-link">დღეს</a>
+                <a href="#forecast" class="nav-link">5 დღიანი პროგნოზი</a>
+                <div class="auth-buttons" id="auth-buttons">
+                    <button class="auth-btn login-btn" onclick="showLoginModal()">შესვლა</button>
+                    <button class="auth-btn register-btn" onclick="showRegisterModal()">რეგისტრაცია</button>
+                </div>
+                <div class="user-menu" id="user-menu" style="display: none;">
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">მომხმარებელი</span>
+                        <button class="user-menu-btn" onclick="toggleUserDropdown()">▼</button>
+                    </div>
+                    <div class="user-dropdown" id="user-dropdown" style="display: none;">
+                        <a href="#" onclick="showFavorites()">ფავორიტები</a>
+                        <a href="#" onclick="showProfile()">პროფილი</a>
+                        <a href="#" onclick="logout()">გასვლა</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="search-section">
+            <div class="container">
+                <div class="search-box">
+                    <h2>აირჩიეთ ლოკაცია</h2>
+                    <div class="search-tabs">
+                        <button class="tab-button active" id="search-tab" onclick="switchSearchMode('search')">🔍 ძებნა</button>
+                        <button class="tab-button" id="map-tab" onclick="switchSearchMode('map')">🗺️ რუკა</button>
+                    </div>
+                    
+                    <div class="search-mode" id="search-mode">
+                        <div class="search-input-container">
+                            <input type="text" id="location-search" placeholder="ქალაქი, რეგიონი, ტბა ან მდინარე..." autocomplete="off">
+                            <div class="search-suggestions" id="search-suggestions"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="map-mode" id="map-mode" style="display: none;">
+                        <div class="map-container">
+                            <div id="fishing-map"></div>
+                            <div class="map-instructions">
+                                <p>📍 დააწექით რუკაზე ლოკაციის საარჩევად</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="current-forecast" id="current-forecast" style="display: none;">
+            <div class="container">
+                <div class="location-header">
+                    <h3 id="current-location">თბილისი</h3>
+                    <p id="current-date"></p>
+                </div>
+                
+                <div class="fishing-score-card">
+                    <div class="score-container">
+                        <div class="score-circle">
+                            <span class="score-value" id="fishing-score">0</span>
+                            <span class="score-max">/10</span>
+                        </div>
+                        <div class="score-label">
+                            <h4>თევზაობის ინდექსი</h4>
+                            <p id="score-description">შეფასება იტვირთება...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">🌡️</div>
+                        <div class="metric-info">
+                            <h5>ტემპერატურა</h5>
+                            <span class="metric-value" id="temperature">--°C</span>
+                            <p class="metric-description">იდეალური ტემპერატურა თევზებისთვის 15-25°C</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">💨</div>
+                        <div class="metric-info">
+                            <h5>ქარი</h5>
+                            <span class="metric-value" id="wind">-- კმ/სთ</span>
+                            <p class="metric-description">მსუბუქი ქარი (5-15 კმ/სთ) ხელს უწყობს თევზაობას</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">🌙</div>
+                        <div class="metric-info">
+                            <h5>მთვარის ფაზა</h5>
+                            <span class="metric-value" id="moon-phase">--</span>
+                            <p class="metric-description">ახალმთვარე და სავსემთვარე საუკეთესოა თევზაობისთვის</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">🌊</div>
+                        <div class="metric-info">
+                            <h5>ატმოსფერული წნევა</h5>
+                            <span class="metric-value" id="pressure">-- hPa</span>
+                            <p class="metric-description">მუდმივი წნევა (1013-1020 hPa) ხელს უწყობს თევზაობას</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">☀️</div>
+                        <div class="metric-info">
+                            <h5>UV ინდექსი</h5>
+                            <span class="metric-value" id="uv-index">--</span>
+                            <p class="metric-description">დაბალი UV (1-3) უკეთესია ადრე დილით და საღამოს</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">💧</div>
+                        <div class="metric-info">
+                            <h5>ნალექები</h5>
+                            <span class="metric-value" id="precipitation">-- მმ</span>
+                            <p class="metric-description">მსუბუქი წვიმა შეიძლება გააუმჯობესოს თევზაობა</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">💨</div>
+                        <div class="metric-info">
+                            <h5>ნესტიანობა</h5>
+                            <span class="metric-value" id="humidity">--%</span>
+                            <p class="metric-description">40-70% ნესტიანობა ოპტიმალურია თევზაობისთვის</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">⏰</div>
+                        <div class="metric-info">
+                            <h5>საუკეთესო დრო</h5>
+                            <span class="metric-value" id="best-time">--</span>
+                            <p class="metric-description">ადრე დილით და საღამოს ღამისთევამდე</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="forecast-section" id="forecast-section" style="display: none;">
+            <div class="container">
+                <h3>5 დღიანი პროგნოზი</h3>
+                <div class="forecast-grid" id="forecast-grid">
+                    <!-- Forecast cards will be generated here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Authentication Modals -->
+    <div class="modal-overlay" id="modal-overlay" style="display: none;" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <!-- Login Modal -->
+            <div class="modal-content" id="login-modal" style="display: none;">
+                <div class="modal-header">
+                    <h3>შესვლა</h3>
+                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                </div>
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="login-email">ელ-ფოსტა</label>
+                        <input type="email" id="login-email" name="email" required autocomplete="email">
+                        <div class="error-message" id="login-email-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="login-password">პაროლი</label>
+                        <input type="password" id="login-password" name="password" required autocomplete="current-password">
+                        <div class="error-message" id="login-password-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
+                        <div class="error-message" id="login-recaptcha-error"></div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="login-submit">
+                        <span class="btn-text">შესვლა</span>
+                        <span class="btn-loading" style="display: none;">იტვირთება...</span>
+                    </button>
+
+                    <div class="form-links">
+                        <a href="#" onclick="showRegisterModal()">არ გაქვთ ანგარიში? რეგისტრაცია</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Register Modal -->
+            <div class="modal-content" id="register-modal" style="display: none;">
+                <div class="modal-header">
+                    <h3>რეგისტრაცია</h3>
+                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                </div>
+                <form id="register-form" class="auth-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="register-firstname">სახელი</label>
+                            <input type="text" id="register-firstname" name="firstName" required autocomplete="given-name">
+                            <div class="error-message" id="register-firstname-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="register-lastname">გვარი</label>
+                            <input type="text" id="register-lastname" name="lastName" required autocomplete="family-name">
+                            <div class="error-message" id="register-lastname-error"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-email">ელ-ფოსტა</label>
+                        <input type="email" id="register-email" name="email" required autocomplete="email">
+                        <div class="error-message" id="register-email-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="register-password">პაროლი</label>
+                        <input type="password" id="register-password" name="password" required autocomplete="new-password">
+                        <div class="password-requirements">
+                            პაროლი უნდა შეიცავდეს: მცირე ასო, დიდი ასო, ციფრი და სპეციალური სიმბოლო (მინ. 8 სიმბოლო)
+                        </div>
+                        <div class="error-message" id="register-password-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-confirm-password">პაროლის დადასტურება</label>
+                        <input type="password" id="register-confirm-password" name="confirmPassword" required autocomplete="new-password">
+                        <div class="error-message" id="register-confirm-password-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
+                        <div class="error-message" id="register-recaptcha-error"></div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="register-submit">
+                        <span class="btn-text">რეგისტრაცია</span>
+                        <span class="btn-loading" style="display: none;">იტვირთება...</span>
+                    </button>
+
+                    <div class="form-links">
+                        <a href="#" onclick="showLoginModal()">უკვე გაქვთ ანგარიში? შესვლა</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 თევზაობის პროგნოზი საქართველოში</p>
+        </div>
+    </footer>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet Search Plugin -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <!-- Google reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

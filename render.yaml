@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fishing-forecast-georgia
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    disk:
+      name: fishing-data
+      mountPath: /tmp
+      sizeGB: 1
