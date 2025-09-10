@@ -2,7 +2,6 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { verifyRecaptcha } = require('../utils/recaptcha');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -49,9 +48,6 @@ const registerValidation = [
             return true;
         }),
     
-    body('recaptchaToken')
-        .notEmpty()
-        .withMessage('გთხოვთ დაადასტუროთ რომ არ ხართ რობოტი')
 ];
 
 // Login validation rules
@@ -65,9 +61,6 @@ const loginValidation = [
         .notEmpty()
         .withMessage('პაროლი სავალდებულოა'),
     
-    body('recaptchaToken')
-        .notEmpty()
-        .withMessage('გთხოვთ დაადასტუროთ რომ არ ხართ რობოტი')
 ];
 
 // @route   POST /api/auth/register
@@ -85,16 +78,8 @@ router.post('/register', registerValidation, async (req, res) => {
             });
         }
 
-        const { firstName, lastName, email, password, recaptchaToken } = req.body;
+        const { firstName, lastName, email, password } = req.body;
 
-        // Verify reCAPTCHA
-        const recaptchaValid = await verifyRecaptcha(recaptchaToken);
-        if (!recaptchaValid) {
-            return res.status(400).json({
-                success: false,
-                message: 'reCAPTCHA ვერიფიკაცია ვერ მოხერხდა'
-            });
-        }
 
         // Check if user already exists
         const existingUser = await User.findByEmail(email);
@@ -162,16 +147,8 @@ router.post('/login', loginValidation, async (req, res) => {
             });
         }
 
-        const { email, password, recaptchaToken } = req.body;
+        const { email, password } = req.body;
 
-        // Verify reCAPTCHA
-        const recaptchaValid = await verifyRecaptcha(recaptchaToken);
-        if (!recaptchaValid) {
-            return res.status(400).json({
-                success: false,
-                message: 'reCAPTCHA ვერიფიკაცია ვერ მოხერხდა'
-            });
-        }
 
         // Find user and include password for comparison
         const user = await User.findByEmail(email).select('+password');

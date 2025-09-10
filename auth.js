@@ -72,7 +72,6 @@ class AuthManager {
     async handleLogin() {
         const form = document.getElementById('login-form');
         const formData = new FormData(form);
-        const recaptchaResponse = grecaptcha.getResponse();
 
         // Clear previous errors
         this.clearFormErrors('login');
@@ -86,10 +85,6 @@ class AuthManager {
             return;
         }
 
-        if (!recaptchaResponse) {
-            this.showError('login-recaptcha', 'გთხოვთ დაადასტუროთ რომ არ ხართ რობოტი');
-            return;
-        }
 
         this.setLoading('login', true);
 
@@ -101,8 +96,7 @@ class AuthManager {
                 },
                 body: JSON.stringify({
                     email,
-                    password,
-                    recaptchaToken: recaptchaResponse
+                    password
                 })
             });
 
@@ -121,7 +115,6 @@ class AuthManager {
                 
                 // Reset form
                 form.reset();
-                grecaptcha.reset();
             } else {
                 // Login failed
                 if (data.errors && data.errors.length > 0) {
@@ -129,7 +122,6 @@ class AuthManager {
                 } else {
                     this.showError('login', data.message || 'შესვლისას მოხდა შეცდომა');
                 }
-                grecaptcha.reset();
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -143,7 +135,6 @@ class AuthManager {
     async handleRegister() {
         const form = document.getElementById('register-form');
         const formData = new FormData(form);
-        const recaptchaResponse = grecaptcha.getResponse(1); // Second reCAPTCHA widget
 
         // Clear previous errors
         this.clearFormErrors('register');
@@ -166,10 +157,6 @@ class AuthManager {
             return;
         }
 
-        if (!recaptchaResponse) {
-            this.showError('register-recaptcha', 'გთხოვთ დაადასტუროთ რომ არ ხართ რობოტი');
-            return;
-        }
 
         // Client-side password validation
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
@@ -192,7 +179,6 @@ class AuthManager {
                     email,
                     password,
                     confirmPassword,
-                    recaptchaToken: recaptchaResponse
                 })
             });
 
@@ -211,7 +197,6 @@ class AuthManager {
                 
                 // Reset form
                 form.reset();
-                grecaptcha.reset(1);
             } else {
                 // Registration failed
                 if (data.errors && data.errors.length > 0) {
@@ -219,7 +204,6 @@ class AuthManager {
                 } else {
                     this.showError('register', data.message || 'რეგისტრაციისას მოხდა შეცდომა');
                 }
-                grecaptcha.reset(1);
             }
         } catch (error) {
             console.error('Register error:', error);
@@ -263,10 +247,6 @@ class AuthManager {
         document.getElementById('login-modal').style.display = 'block';
         document.getElementById('register-modal').style.display = 'none';
         
-        // Reset reCAPTCHA
-        if (typeof grecaptcha !== 'undefined') {
-            grecaptcha.reset();
-        }
     }
 
     showRegisterModal() {
@@ -274,10 +254,6 @@ class AuthManager {
         document.getElementById('login-modal').style.display = 'none';
         document.getElementById('register-modal').style.display = 'block';
         
-        // Reset reCAPTCHA
-        if (typeof grecaptcha !== 'undefined') {
-            grecaptcha.reset(1);
-        }
     }
 
     closeModal() {
@@ -289,11 +265,6 @@ class AuthManager {
         document.getElementById('login-form').reset();
         document.getElementById('register-form').reset();
         
-        // Reset reCAPTCHA
-        if (typeof grecaptcha !== 'undefined') {
-            grecaptcha.reset();
-            grecaptcha.reset(1);
-        }
     }
 
     toggleUserDropdown() {
